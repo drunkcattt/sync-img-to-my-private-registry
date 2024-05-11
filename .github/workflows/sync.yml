@@ -34,5 +34,10 @@ jobs:
             echo "Syncing from $source to $destination"
             docker pull "$source"
             docker tag "$source" "$destination"
+
+            # Extract registry from destination
+            registry=$(echo "$destination" | awk -F'/' '{print $1}')
+
+            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }} $registry
             docker push "$destination"
           done
