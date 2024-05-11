@@ -15,15 +15,15 @@ jobs:
       - name: Read sync mappings
         id: read-mappings
         run: |
-          echo "mappings=$(cat mappings.json | jq -r '.[] | @base64')" >> $GITHUB_ENV
+          echo "${{ steps.read-mappings.outputs.mappings }}" >> $GITHUB_STATE
 
       - name: Sync images
         run: |
-          mappings=$(echo "$mappings" | base64 --decode)
+          mappings=$(cat $GITHUB_STATE)
 
           for mapping in $mappings; do
             _jq() {
-              echo ${mapping} | base64 --decode | jq -r ${1}
+              echo ${mapping} | jq -r ${1}
             }
 
             source=$(_jq '.source')
