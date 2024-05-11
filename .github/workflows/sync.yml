@@ -1,0 +1,38 @@
+name: Sync Images
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Read sync mappings
+        id: read-mappings
+        run: |
+          echo "::set-output name=mappings::$(cat mappings.json)"
+
+      - name: Sync images
+        run: |
+          mappings=$(echo "${{ steps.read-mappings.outputs.mappings }}" | jq -r '.[] | @base64')
+
+          for mapping in $mappings; do
+            _jq() {
+              echo ${mapping} | base64 --decode | jq -r ${1}
+            }
+
+            source=$(_jq '.source')
+            destination=$(_jq '.destination')
+
+            source_tag=$(echo "$source" | awk -F':' '{print $2}')
+            destination="$destination:$source_tag"
+
+            echo "Syncing from $source to $destination"
+            docker pull "$source"
+            docker tag "$source" "$destination"
+            docker push "$destination"
+          done
