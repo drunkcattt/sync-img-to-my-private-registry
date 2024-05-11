@@ -28,7 +28,7 @@ jobs:
             source=$(_jq '.source')
             destination=$(_jq '.destination')
 
-            source_tag=$(echo "$source" | awk -F':' '{print $2}')
+            source_tag=$(docker pull --quiet --disable-content-trust "$source" | awk -F':' '/Digest/ {print $2}')
             destination="$destination:$source_tag"
 
             echo "Syncing from $source to $destination"
