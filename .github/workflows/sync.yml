@@ -16,10 +16,13 @@ jobs:
         id: read-mappings
         run: |
           echo "${{ steps.read-mappings.outputs.mappings }}" >> $GITHUB_STATE
+          echo "Mappings saved to $GITHUB_STATE"
 
       - name: Sync images
         run: |
           mappings=$(cat $GITHUB_STATE)
+
+          echo "Mappings read from $GITHUB_STATE: $mappings"
 
           for mapping in $mappings; do
             _jq() {
@@ -29,16 +32,25 @@ jobs:
             source=$(_jq '.source')
             destination=$(_jq '.destination')
 
-            source_tag=$(docker pull --quiet --disable-content-trust "$source" | awk -F':' '/Digest/ {print $2}')
-            destination="$destination:$source_tag"
-
             echo "Syncing from $source to $destination"
+
+            source_tag=$(docker pull --quiet --disable-content-trust "$source" | awk -F':' '/Digest/ {print $2}')
+            echo "Source tag for $source: $source_tag"
+
+            destination="$destination:$source_tag"
+            echo "Destination after tagging: $destination"
+
             docker pull "$source"
             docker tag "$source" "$destination"
+            echo "Image tagged successfully"
 
             # Extract registry from destination
             registry=$(echo "$destination" | awk -F'/' '{print $1}')
+            echo "Registry extracted from destination: $registry"
 
             docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }} $registry
+            echo "Logged in to $registry successfully"
+
             docker push "$destination"
+            echo "Image pushed to $destination successfully"
           done
