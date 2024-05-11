@@ -8,6 +8,8 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    container:
+      image: docker:19.03.13
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -15,14 +17,14 @@ jobs:
       - name: Read sync mappings
         id: read-mappings
         run: |
-          echo "${{ steps.read-mappings.outputs.mappings }}" >> $GITHUB_STATE
-          echo "Mappings saved to $GITHUB_STATE"
+          echo "${{ steps.read-mappings.outputs.mappings }}" >> mappings.json
+          echo "Mappings saved to mappings.json"
 
       - name: Sync images
         run: |
-          mappings=$(cat $GITHUB_STATE)
+          mappings=$(cat mappings.json)
 
-          echo "Mappings read from $GITHUB_STATE: $mappings"
+          echo "Mappings read from mappings.json: $mappings"
 
           for mapping in $mappings; do
             _jq() {
