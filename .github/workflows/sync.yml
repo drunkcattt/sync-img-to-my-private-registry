@@ -29,7 +29,7 @@ jobs:
 
           echo "Mappings read from mappings.json: $mappings"
 
-          for mapping in $mappings; do
+          echo "$mappings" | jq -c '.[]' | while IFS= read -r mapping; do
             _jq() {
               echo ${mapping} | jq -r ${1}
             }
