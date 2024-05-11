@@ -1,9 +1,14 @@
 name: Sync Images
 
 on:
-  schedule:
-    - cron: '0 0 * * *'  # 每天 UTC 时间的午夜执行一次同步
   workflow_dispatch:
+    inputs:
+      source_image:
+        description: 'Source image'
+        required: true
+      destination_image:
+        description: 'Destination image'
+        required: true
 
 jobs:
   sync:
@@ -14,48 +19,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install jq
-        run: apk add jq
-
-      - name: Read sync mappings
-        id: read-mappings
-        run: |
-          echo "${{ steps.read-mappings.outputs.mappings }}" >> mappings.json
-          echo "Mappings saved to mappings.json"
-
       - name: Sync images
         run: |
-          mappings=$(cat mappings.json)
+          source="${{ github.event.inputs.source_image }}"
+          destination="${{ github.event.inputs.destination_image }}"
 
-          echo "Mappings read from mappings.json: $mappings"
+          echo "Syncing from $source to $destination"
 
-          echo "$mappings" | jq -c '.[]' | while IFS= read -r mapping; do
-            _jq() {
-              echo ${mapping} | jq -r ${1}
-            }
+          docker pull "$source"
+          echo "Image pulled successfully"
 
-            source=$(_jq '.source')
-            destination=$(_jq '.destination')
+          docker tag "$source" "$destination"
+          echo "Image tagged successfully"
 
-            echo "Syncing from $source to $destination"
+          # Extract registry from destination
+          registry=$(echo "$destination" | awk -F'/' '{print $1}')
+          echo "Registry extracted from destination: $registry"
 
-            source_tag=$(docker pull --quiet --disable-content-trust "$source" | awk -F':' '/Digest/ {print $2}')
-            echo "Source tag for $source: $source_tag"
+          docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }} $registry
+          echo "Logged in to $registry successfully"
 
-            destination="$destination:$source_tag"
-            echo "Destination after tagging: $destination"
-
-            docker pull "$source"
-            docker tag "$source" "$destination"
-            echo "Image tagged successfully"
-
-            # Extract registry from destination
-            registry=$(echo "$destination" | awk -F'/' '{print $1}')
-            echo "Registry extracted from destination: $registry"
-
-            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }} $registry
-            echo "Logged in to $registry successfully"
-
-            docker push "$destination"
-            echo "Image pushed to $destination successfully"
-          done
+          docker push "$destination"
+          echo "Image pushed to $destination successfully"
