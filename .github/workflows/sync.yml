@@ -19,7 +19,7 @@ jobs:
 
       - name: Sync images
         run: |
-          mappings=$(echo "$mappings" | jq -r '@base64')
+          mappings=$(echo "$mappings" | base64 --decode)
 
           for mapping in $mappings; do
             _jq() {
