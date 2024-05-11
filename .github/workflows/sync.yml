@@ -43,8 +43,5 @@ jobs:
           registry=$(echo "$destination" | awk -F'/' '{print $1}')
           echo "Registry extracted from destination: $registry"
 
-          docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }} $registry
-          echo "Logged in to $registry successfully"
-
           docker push "$destination"
           echo "Image pushed to $destination successfully"
