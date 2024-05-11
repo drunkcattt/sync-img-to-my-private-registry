@@ -1,0 +1,1 @@
+# sync-img-to-my-private-registry
